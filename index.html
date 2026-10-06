@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Local URL Cleaner</title>
+  <style>
+    :root { color-scheme: light dark; font: 1rem/1.5 system-ui, sans-serif; }
+    body { max-width: 52rem; margin: 0 auto; padding: 1.25rem; }
+    h1 { line-height: 1.2; }
+    form, .result { display: grid; gap: .8rem; }
+    textarea { box-sizing: border-box; width: 100%; min-height: 7rem; padding: .7rem; font: inherit; overflow-wrap: anywhere; }
+    button { width: fit-content; min-height: 2.75rem; padding: .45rem .9rem; font: inherit; cursor: pointer; }
+    .hint { color: color-mix(in srgb, currentColor 72%, transparent); }
+    .error { color: #b42318; }
+    .success { color: #16803c; }
+    #removed-list { overflow-wrap: anywhere; }
+    @media (max-width: 34rem) { body { padding: .9rem; } button { width: 100%; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Local URL Cleaner</h1>
+    <p>Remove a small, documented set of tracking parameters from a link before sharing it. Your URL stays in this browser tab.</p>
+
+    <form id="clean-form">
+      <label for="url-input">URL to clean</label>
+      <textarea id="url-input" name="url" autocomplete="url" spellcheck="false" required></textarea>
+      <p class="hint">Only HTTP and HTTPS links are supported. Unknown parameters are kept.</p>
+      <button type="submit">Clean URL</button>
+    </form>
+
+    <p id="status" role="status" aria-live="polite"></p>
+
+    <section id="result" class="result" aria-labelledby="result-heading" hidden>
+      <h2 id="result-heading">Cleaned URL</h2>
+      <label for="cleaned-url">Copy or review the cleaned link</label>
+      <textarea id="cleaned-url" readonly spellcheck="false"></textarea>
+      <button id="copy-button" type="button">Copy cleaned URL</button>
+      <p id="removed-count"></p>
+      <ul id="removed-list"></ul>
+    </section>
+
+    <noscript>This tool needs JavaScript enabled in your browser. It does not send your URL anywhere.</noscript>
+  </main>
+  <script src="core.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
