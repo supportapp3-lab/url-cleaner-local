@@ -41,16 +41,24 @@
       throw new TypeError("Only HTTP and HTTPS URLs are supported.");
     }
 
-    const fragmentAt = source.indexOf("#");
-    const beforeFragment = fragmentAt === -1 ? source : source.slice(0, fragmentAt);
-    const fragment = fragmentAt === -1 ? "" : source.slice(fragmentAt);
-    const queryAt = beforeFragment.indexOf("?");
-    if (queryAt === -1) {
+    // Use the URL parser's serialized components as the sole authority for URL
+    // boundaries. Looking for '?' or '#' in the original input can disagree
+    // with how a browser treats unusual authority, userinfo, and path syntax.
+    const serialized = parsed.href;
+    const fragmentAt = serialized.indexOf("#");
+    const beforeFragment = fragmentAt === -1 ? serialized : serialized.slice(0, fragmentAt);
+    const fragment = fragmentAt === -1 ? "" : serialized.slice(fragmentAt);
+    const search = parsed.search;
+    if (search === "") {
       return { cleanedUrl: source, removedParameters: [] };
     }
 
-    const prefix = beforeFragment.slice(0, queryAt);
-    const segments = beforeFragment.slice(queryAt + 1).split("&");
+    if (!beforeFragment.endsWith(search)) {
+      throw new TypeError("The URL query could not be safely identified.");
+    }
+
+    const prefix = beforeFragment.slice(0, beforeFragment.length - search.length);
+    const segments = search.slice(1).split("&");
     const kept = [];
     const removedParameters = [];
 
@@ -63,7 +71,11 @@
       }
     }
 
-    const query = removedParameters.length === 0 || kept.length > 0 ? `?${kept.join("&")}` : "";
+    if (removedParameters.length === 0) {
+      return { cleanedUrl: source, removedParameters };
+    }
+
+    const query = kept.length > 0 ? `?${kept.join("&")}` : "";
     return { cleanedUrl: `${prefix}${query}${fragment}`, removedParameters };
   }
 

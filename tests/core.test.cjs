@@ -26,6 +26,31 @@ test("preserves the fragment exactly", () => {
   assert.equal(result.cleanedUrl, "https://example.test/p?mode=full#section%202");
 });
 
+test("uses parsed URL boundaries around encoded userinfo, path, query, and fragment delimiters", () => {
+  const input = "https://user%3Futm_source%3Dfake:pass%23utm_medium%3Dfake@EXAMPLE.test/a%3Fb%23c?gclid=real&keep=a%3Fb%23c#frag?utm_id=not-query";
+  const result = cleanUrl(input);
+
+  assert.equal(result.cleanedUrl, "https://user%3Futm_source%3Dfake:pass%23utm_medium%3Dfake@example.test/a%3Fb%23c?keep=a%3Fb%23c#frag?utm_id=not-query");
+  assert.deepEqual(result.removedParameters, ["gclid"]);
+
+  const parsed = new URL(result.cleanedUrl);
+  assert.equal(parsed.username, "user%3Futm_source%3Dfake");
+  assert.equal(parsed.password, "pass%23utm_medium%3Dfake");
+  assert.equal(parsed.pathname, "/a%3Fb%23c");
+  assert.equal(parsed.search, "?keep=a%3Fb%23c");
+  assert.equal(parsed.hash, "#frag?utm_id=not-query");
+});
+
+test("removes tracking keys only from the parser's actual query with userinfo present", () => {
+  const input = "https://user:password@host.example/path?utm_source=x&keep=%2f%3f%23#fragment";
+  const result = cleanUrl(input);
+
+  assert.equal(result.cleanedUrl, "https://user:password@host.example/path?keep=%2f%3f%23#fragment");
+  assert.deepEqual(result.removedParameters, ["utm_source"]);
+  assert.equal(new URL(result.cleanedUrl).username, "user");
+  assert.equal(new URL(result.cleanedUrl).password, "password");
+});
+
 test("preserves repeated unknown parameters and counts repeated tracking keys", () => {
   const result = cleanUrl("https://example.test/?tag=a&tag=b&utm_source=x&utm_source=y&tag=c");
   assert.equal(result.cleanedUrl, "https://example.test/?tag=a&tag=b&tag=c");
