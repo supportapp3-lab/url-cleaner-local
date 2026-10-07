@@ -6,6 +6,10 @@ A small browser tool that removes a documented set of common tracking parameters
 
 Open `index.html` in a recent desktop or mobile browser, paste one complete HTTP or HTTPS URL, and choose **Clean URL**. Review the cleaned link and removed parameter names, then use **Copy cleaned URL**. If clipboard access is unavailable, the cleaned URL is selected so you can copy it with your keyboard shortcut.
 
+## Download a single-file browser demo
+
+[Download the standalone browser demo](https://github.com/supportapp3-lab/url-cleaner-local/raw/dd9f714f534fb3ea513d15463d8314d1914e3cd5/browser-e2e.html?download=1), then open the downloaded HTML file in a browser. The file bundles the app scripts into one page and does not need a server, install, or command line. Try cleaning `https://example.com/?utm_source=demo&keep=1`, check the removed-parameter message, use **Copy cleaned URL**, try invalid text, and narrow the browser window to check the mobile layout. If clipboard permission is unavailable for a local file, the app selects the result for keyboard copying.
+
 ## What it removes
 
 - Any decoded query parameter name beginning with `utm_` and at least one character after the underscore, such as `utm_source`, `utm_medium`, and `utm_campaign`.
