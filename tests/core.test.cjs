@@ -2,7 +2,11 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
 const { cleanUrl } = require("../core.js");
+const { buildBundle } = require("../tools/build-browser-e2e.cjs");
 
 test("removes utm parameters and the documented common click ids", () => {
   const result = cleanUrl("https://shop.example/item?utm_source=mail&gclid=abc&fbclid=def");
@@ -94,4 +98,17 @@ test("keeps empty query pairs and a bare query delimiter when unknown data remai
 test("rejects non-string input and control characters", () => {
   assert.throws(() => cleanUrl(null), TypeError);
   assert.throws(() => cleanUrl("https://example.test/?a=1\n&utm_source=x"), /whitespace or control/);
+});
+
+test("downloadable browser E2E page is a single offline file matching the app sources", () => {
+  const bundle = fs.readFileSync(path.join(__dirname, "..", "browser-e2e.html"), "utf8");
+  assert.equal(bundle, buildBundle());
+  assert.match(bundle, /default-src 'none'/);
+  assert.match(bundle, /script-src 'sha256-[A-Za-z0-9+/]+=*' 'sha256-[A-Za-z0-9+/]+=*'/);
+  assert.doesNotMatch(bundle, /<script\s+src=/i);
+  const inlineScripts = [...bundle.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+  assert.equal(inlineScripts.length, 2);
+  const expectedHashes = inlineScripts.map((source) => crypto.createHash("sha256").update(source, "utf8").digest("base64"));
+  const policyHashes = [...bundle.match(/script-src ([^;]+)/)[1].matchAll(/'sha256-([^']+)'/g)].map((match) => match[1]);
+  assert.deepEqual(policyHashes, expectedHashes);
 });
