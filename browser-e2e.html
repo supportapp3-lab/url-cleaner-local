@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-pMAY0blnyK0bSOzg1Woc7vGNxBeDRLtxAX+NuovRdUk=' 'sha256-xVIeY+kZlRcNByuGarEPsRVZMfAJNK6gzJb/WDYsNaA='; base-uri 'none'; form-action 'none'">
+  <title>Local URL Cleaner</title>
+  <style>
+    :root { color-scheme: light dark; font: 1rem/1.5 system-ui, sans-serif; }
+    body { max-width: 52rem; margin: 0 auto; padding: 1.25rem; }
+    h1 { line-height: 1.2; }
+    form, .result { display: grid; gap: .8rem; }
+    textarea { box-sizing: border-box; width: 100%; min-height: 7rem; padding: .7rem; font: inherit; overflow-wrap: anywhere; }
+    button { width: fit-content; min-height: 2.75rem; padding: .45rem .9rem; font: inherit; cursor: pointer; }
+    .hint { color: color-mix(in srgb, currentColor 72%, transparent); }
+    .error { color: #b42318; }
+    .success { color: #16803c; }
+    #removed-list { overflow-wrap: anywhere; }
+    @media (max-width: 34rem) { body { padding: .9rem; } button { width: 100%; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Local URL Cleaner</h1>
+    <p>Remove a small, documented set of tracking parameters from a link before sharing it. Your URL stays in this browser tab.</p>
+
+    <form id="clean-form">
+      <label for="url-input">URL to clean</label>
+      <textarea id="url-input" name="url" autocomplete="url" spellcheck="false" required></textarea>
+      <p class="hint">Only HTTP and HTTPS links are supported. Unknown parameters are kept.</p>
+      <button type="submit">Clean URL</button>
+    </form>
+
+    <p id="status" role="status" aria-live="polite"></p>
+
+    <section id="result" class="result" aria-labelledby="result-heading" hidden>
+      <h2 id="result-heading">Cleaned URL</h2>
+      <label for="cleaned-url">Copy or review the cleaned link</label>
+      <textarea id="cleaned-url" readonly spellcheck="false"></textarea>
+      <button id="copy-button" type="button">Copy cleaned URL</button>
+      <p id="removed-count"></p>
+      <ul id="removed-list"></ul>
+    </section>
+
+    <noscript>This tool needs JavaScript enabled in your browser. It does not send your URL anywhere.</noscript>
+  </main>
+  <script>(function (root) {
+  "use strict";
+
+  const KNOWN_TRACKING_KEYS = new Set([
+    "gclid", "dclid", "gbraid", "wbraid", "fbclid", "msclkid", "mc_cid", "mc_eid"
+  ]);
+
+  function isTrackingKey(key) {
+    const normalized = key.toLowerCase();
+    return (normalized.startsWith("utm_") && normalized.length > 4) || KNOWN_TRACKING_KEYS.has(normalized);
+  }
+
+  function decodedParameterName(segment) {
+    const equalsAt = segment.indexOf("=");
+    const rawName = equalsAt === -1 ? segment : segment.slice(0, equalsAt);
+    try {
+      return decodeURIComponent(rawName.replace(/\+/g, " "));
+    } catch {
+      return null;
+    }
+  }
+
+  function cleanUrl(input) {
+    if (typeof input !== "string" || input.trim() === "") {
+      throw new TypeError("Enter an HTTP or HTTPS URL.");
+    }
+
+    const source = input.trim();
+    if (/[\u0000-\u0020\u007f]/.test(source)) {
+      throw new TypeError("The URL contains whitespace or control characters. Remove them or encode spaces first.");
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(source);
+    } catch {
+      throw new TypeError("Enter a complete, valid HTTP or HTTPS URL.");
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new TypeError("Only HTTP and HTTPS URLs are supported.");
+    }
+
+    // Use the URL parser's serialized components as the sole authority for URL
+    // boundaries. Looking for '?' or '#' in the original input can disagree
+    // with how a browser treats unusual authority, userinfo, and path syntax.
+    const serialized = parsed.href;
+    const fragmentAt = serialized.indexOf("#");
+    const beforeFragment = fragmentAt === -1 ? serialized : serialized.slice(0, fragmentAt);
+    const fragment = fragmentAt === -1 ? "" : serialized.slice(fragmentAt);
+    const search = parsed.search;
+    if (search === "") {
+      return { cleanedUrl: source, removedParameters: [] };
+    }
+
+    if (!beforeFragment.endsWith(search)) {
+      throw new TypeError("The URL query could not be safely identified.");
+    }
+
+    const prefix = beforeFragment.slice(0, beforeFragment.length - search.length);
+    const segments = search.slice(1).split("&");
+    const kept = [];
+    const removedParameters = [];
+
+    for (const segment of segments) {
+      const name = decodedParameterName(segment);
+      if (name !== null && isTrackingKey(name)) {
+        removedParameters.push(name);
+      } else {
+        kept.push(segment);
+      }
+    }
+
+    if (removedParameters.length === 0) {
+      return { cleanedUrl: source, removedParameters };
+    }
+
+    const query = kept.length > 0 ? `?${kept.join("&")}` : "";
+    return { cleanedUrl: `${prefix}${query}${fragment}`, removedParameters };
+  }
+
+  const api = Object.freeze({ cleanUrl });
+  if (typeof module === "object" && module.exports) {
+    module.exports = api;
+  }
+  root.UrlCleanerCore = api;
+})(globalThis);
+</script>
+  <script>(function () {
+  "use strict";
+
+  const form = document.querySelector("#clean-form");
+  const input = document.querySelector("#url-input");
+  const result = document.querySelector("#result");
+  const output = document.querySelector("#cleaned-url");
+  const status = document.querySelector("#status");
+  const count = document.querySelector("#removed-count");
+  const list = document.querySelector("#removed-list");
+  const copyButton = document.querySelector("#copy-button");
+
+  function clearResult() {
+    result.hidden = true;
+    output.value = "";
+    count.textContent = "";
+    list.replaceChildren();
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    clearResult();
+    status.className = "";
+
+    try {
+      const cleaned = UrlCleanerCore.cleanUrl(input.value);
+      output.value = cleaned.cleanedUrl;
+      count.textContent = `${cleaned.removedParameters.length} tracking parameter${cleaned.removedParameters.length === 1 ? "" : "s"} removed.`;
+      for (const name of cleaned.removedParameters) {
+        const item = document.createElement("li");
+        item.textContent = name;
+        list.append(item);
+      }
+      result.hidden = false;
+      status.textContent = "URL cleaned locally.";
+      status.className = "success";
+    } catch (error) {
+      status.textContent = error.message;
+      status.className = "error";
+    }
+  });
+
+  copyButton.addEventListener("click", async () => {
+    if (result.hidden || output.value === "") return;
+    status.className = "";
+    try {
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+        throw new Error("Clipboard access is unavailable.");
+      }
+      await navigator.clipboard.writeText(output.value);
+      status.textContent = "Copied to clipboard.";
+      status.className = "success";
+    } catch {
+      output.focus();
+      output.select();
+      status.textContent = "The cleaned URL is selected. Copy it with your keyboard shortcut.";
+      status.className = "";
+    }
+  });
+})();
+</script>
+</body>
+</html>
