@@ -8,8 +8,12 @@ const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "browser-e2e.html");
 const SCRIPTS = ["core.js", "app.js"];
 
+function normalizeNewlines(text) {
+  return text.replace(/\r\n?/g, "\n");
+}
+
 function buildBundle() {
-  let html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  let html = normalizeNewlines(fs.readFileSync(path.join(ROOT, "index.html"), "utf8"));
   const references = [...html.matchAll(/<script src="(core\.js|app\.js)" defer><\/script>/g)];
   if (references.map((match) => match[1]).join("\0") !== SCRIPTS.join("\0")
       || (html.match(/<script\b/g) || []).length !== SCRIPTS.length) {
@@ -17,7 +21,7 @@ function buildBundle() {
   }
 
   const scripts = SCRIPTS.map((name) => {
-    const source = fs.readFileSync(path.join(ROOT, name), "utf8").replace(/\r\n?/g, "\n");
+    const source = normalizeNewlines(fs.readFileSync(path.join(ROOT, name), "utf8"));
     if (/<\/script/i.test(source)) throw new Error(`Cannot safely inline ${name}.`);
     const digest = crypto.createHash("sha256").update(source, "utf8").digest("base64");
     return { name, source, digest };
@@ -41,7 +45,7 @@ function buildBundle() {
 function main() {
   const expected = buildBundle();
   if (process.argv[2] === "--check") {
-    if (!fs.existsSync(OUTPUT) || fs.readFileSync(OUTPUT, "utf8") !== expected) {
+    if (!fs.existsSync(OUTPUT) || normalizeNewlines(fs.readFileSync(OUTPUT, "utf8")) !== expected) {
       console.error("browser-e2e.html is stale; regenerate it from index.html, core.js, and app.js.");
       process.exitCode = 1;
       return;
