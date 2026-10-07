@@ -101,7 +101,7 @@ test("rejects non-string input and control characters", () => {
 });
 
 test("downloadable browser E2E page is a single offline file matching the app sources", () => {
-  const bundle = fs.readFileSync(path.join(__dirname, "..", "browser-e2e.html"), "utf8");
+  const bundle = fs.readFileSync(path.join(__dirname, "..", "browser-e2e.html"), "utf8").replace(/\r\n?/g, "\n");
   assert.equal(bundle, buildBundle());
   assert.match(bundle, /default-src 'none'/);
   assert.match(bundle, /script-src 'sha256-[A-Za-z0-9+/]+=*' 'sha256-[A-Za-z0-9+/]+=*'/);
