@@ -9,6 +9,18 @@
   const count = document.querySelector("#removed-count");
   const list = document.querySelector("#removed-list");
   const copyButton = document.querySelector("#copy-button");
+  const errorMessages = new Map([
+    ["Enter an HTTP or HTTPS URL.", "http:// または https:// から始まるURLを入れてください。"],
+    ["The URL contains whitespace or control characters. Remove them or encode spaces first.", "URLに空白や改行が含まれています。取り除いてから試してください。"],
+    ["Enter a complete, valid HTTP or HTTPS URL.", "URLを読み取れませんでした。http:// または https:// から始まるURLを確認してください。"],
+    ["Only HTTP and HTTPS URLs are supported.", "http:// または https:// から始まるURLに対応しています。"],
+    ["The URL query could not be safely identified.", "URLの情報を区別できませんでした。元のURLを確認してください。"]
+  ]);
+
+  document.querySelector("#try-sample").addEventListener("click", () => {
+    input.value = "https://example.com/articles/123?utm_source=mail&utm_campaign=autumn&ref=guide#heading";
+    form.requestSubmit();
+  });
 
   function clearResult() {
     result.hidden = true;
@@ -25,17 +37,19 @@
     try {
       const cleaned = UrlCleanerCore.cleanUrl(input.value);
       output.value = cleaned.cleanedUrl;
-      count.textContent = `${cleaned.removedParameters.length} tracking parameter${cleaned.removedParameters.length === 1 ? "" : "s"} removed.`;
+      count.textContent = cleaned.removedParameters.length
+        ? `削除した情報は${cleaned.removedParameters.length}件です。以下に名前を表示します。`
+        : "削除対象の情報はありませんでした。入力したURLをそのまま表示しています。";
       for (const name of cleaned.removedParameters) {
         const item = document.createElement("li");
         item.textContent = name;
         list.append(item);
       }
       result.hidden = false;
-      status.textContent = "URL cleaned locally.";
+      status.textContent = "URLを整理しました。結果を確認してからコピーしてください。";
       status.className = "success";
     } catch (error) {
-      status.textContent = error.message;
+      status.textContent = errorMessages.get(error.message) || "URLを整理できませんでした。入力内容を確認してください。";
       status.className = "error";
     }
   });
@@ -48,12 +62,12 @@
         throw new Error("Clipboard access is unavailable.");
       }
       await navigator.clipboard.writeText(output.value);
-      status.textContent = "Copied to clipboard.";
+      status.textContent = "URLをコピーしました。";
       status.className = "success";
     } catch {
       output.focus();
       output.select();
-      status.textContent = "The cleaned URL is selected. Copy it with your keyboard shortcut.";
+      status.textContent = "URLを選択しました。コピー操作を行ってください（Windowsなら Ctrl+C、Macなら ⌘C）。";
       status.className = "";
     }
   });

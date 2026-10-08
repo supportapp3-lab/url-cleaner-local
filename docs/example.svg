@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="410" viewBox="0 0 1200 410" role="img" aria-labelledby="title desc">
+<title id="title">架空のURLを整理する例</title><desc id="desc">utm_sourceとutm_campaignを削除し、refとheadingは残す。</desc>
+<rect width="1200" height="410" rx="18" fill="#f5f7fa"/>
+<g font-family="sans-serif" fill="#182536">
+<text x="40" y="56" font-size="28" font-weight="700">共有前のURLから、アクセス解析や広告用の情報を整理する</text>
+<text x="40" y="92" font-size="18" fill="#52647a">架空のURLによる例。削除対象に含まれない情報は残します。</text>
+<rect x="40" y="122" width="1120" height="100" rx="12" fill="#eaf2ff"/>
+<text x="62" y="157" font-size="21" font-weight="700">整理前</text>
+<text x="62" y="195" font-size="17">https://example.com/articles/123?utm_source=mail&amp;utm_campaign=autumn&amp;ref=guide#heading</text>
+<rect x="40" y="245" width="1120" height="100" rx="12" fill="#e6f4ed"/>
+<text x="62" y="280" font-size="21" font-weight="700">整理後</text>
+<text x="62" y="320" font-size="23">https://example.com/articles/123?ref=guide#heading</text>
+<text x="40" y="384" font-size="19" fill="#52647a">削除した情報：utm_source、utm_campaign　／　残した情報：ref、#heading</text>
+</g></svg>
+
