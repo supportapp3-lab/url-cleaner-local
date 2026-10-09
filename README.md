@@ -26,6 +26,24 @@ https://example.com/articles/123?ref=guide#heading
 
 URLの後ろには、ページの表示に必要な情報が含まれることもあります。すべての長いURLを短くするツールではありません。
 
+## 残した情報の表記について
+
+削除する情報がある場合は、ブラウザがURLとして読み取った表記から結果を作ります。そのため、残した記号や日本語の表記が変わることがあります。たとえば、次の架空URLでは、残した値に含まれる `'` が `%27` になります。
+
+```text
+整理前
+https://example.com/?q=O'Reilly&utm_source=mail
+
+整理後
+https://example.com/?q=O%27Reilly
+```
+
+残す項目の順序は維持しますが、入力した文字列と完全に同じ表記になるとは限りません。ホスト名の大文字・小文字や、一部のパス・フラグメントの表記も変わる場合があります。フラグメントは、`#heading` のようにURLの末尾に付く部分です。
+
+削除対象がない場合は、前後の空白を取り除いた入力をそのまま返します。上の例から `&utm_source=mail` を外したURLでは、`'` の表記もそのまま残ります。
+
+この説明は、現在の実装と[ブラウザのURL仕様](https://url.spec.whatwg.org/#special-query-percent-encode-set)に基づいています。URLの表記をそのまま残す必要がある場合は、結果を照らし合わせてから使ってください。
+
 ## 自分のパソコンに保存して使う
 
 リポジトリをダウンロードして `index.html` を開くか、[1ファイル版をダウンロード](https://github.com/supportapp3-lab/url-cleaner-local/raw/main/browser-e2e.html?download=1)してブラウザで開いてください。インストールやサーバーは不要です。1ファイル版も同じ画面・処理を使います。
@@ -49,7 +67,9 @@ The interface is in Japanese. Open `index.html` in a recent desktop or mobile br
 - Any decoded query parameter name beginning with `utm_` and at least one character after the underscore, such as `utm_source`, `utm_medium`, and `utm_campaign`.
 - The exact, case-insensitive names `gclid`, `dclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`, `mc_cid`, and `mc_eid`.
 
-Repeated instances of supported tracking parameters are all removed and counted. Unknown parameter names and values are retained in their original order and encoding. URL fragments are retained. A key is decoded only to decide whether it matches a listed rule; kept query text is not decoded or re-serialized.
+Repeated instances of supported tracking parameters are all removed and counted. When a tracking parameter is removed, the result is built from the browser URL parser's serialized components. Unknown query segments keep their order and their spelling within the parser's serialized query; the cleaner does not pass those segments through URLSearchParams. A key is decoded only to decide whether it matches a listed rule. The serialized fragment is retained.
+
+This is not a guarantee of character-for-character preservation of the input. The browser parser can encode a literal apostrophe in an HTTP/HTTPS query as `%27`, encode non-ASCII text, normalize the hostname, or normalize other URL components before removal. For example, `https://example.com/?q=O'Reilly&utm_source=mail` becomes `https://example.com/?q=O%27Reilly`. If no tracking parameter is removed, the trimmed original input is returned unchanged. See the [URL Standard](https://url.spec.whatwg.org/#special-query-percent-encode-set).
 
 ## Privacy and limits
 
